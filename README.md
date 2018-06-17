@@ -8,9 +8,9 @@ All methods mentioned below have their video and text tutorial in Chinese. Visit
 * Visualize filters and convolutions
   * [Visualization](/codes/000_visualization.py)
 * CNNs
-  * [LeNet](/codes/101_LeNet.py) ([paper](http://www.dengfanxin.cn/wp-content/uploads/2016/03/1998Lecun.pdf))
-  * [GoogLeNet](/codes/102_GoogLeNet.py) ([paper](https://arxiv.org/abs/1409.4842))
-  * [ResNet](/codes/103_ResNet.py) ([paper](https://arxiv.org/abs/1512.03385))
+  * [LeNet](/codes/101_LeNet.py) 
+  * [GoogLeNet](/codes/102_GoogLeNet.py) 
+  * [ResNet](/codes/103_ResNet.py) 
 * Object detection
   * [WIP](#)
 * Generative Adversarial Networks
