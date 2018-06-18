@@ -11,6 +11,7 @@ All methods mentioned below are working in progress. Later, They will have their
   * [LeNet](/codes/101_LeNet.py) 
   * [GoogLeNet](/codes/102_GoogLeNet.py) 
   * [ResNet](/codes/103_ResNet.py) 
+  * [DeepDream](/codes/104_DeepDream.py)
 * Object detection
   * [WIP](#)
 * Generative Adversarial Networks
