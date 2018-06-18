@@ -10,7 +10,7 @@ from PIL import Image
 import requests, os, zipfile
 
 MODEL_PATH = './models/tensorflow_inception_graph.pb'
-IMAGE_PATH = "./example_images/morvan.jpg"
+IMAGE_PATH = "./example_images/morvan_large.jpg"
 
 
 def maybe_download(model_path):
@@ -83,7 +83,7 @@ def calc_grad_tiled(img, t_grad, tile_size=512):
     return np.roll(np.roll(grad, -sx, 1), -sy, 0)
 
 
-def render_deepdream(tf_obj, img0, save_path, iter_n=20, step=1.5, octave_n=4, octave_scale=1.4):
+def render_deepdream(tf_obj, img0, save_path, iter_n=50, step=1.5, octave_n=4, octave_scale=1.4):
     # backprop from this tf_obj
     t_score = tf.reduce_mean(tf_obj)                # defining the optimization objective
     t_grad = tf.gradients(t_score, tf_input)[0]     # the impact on the input layer
@@ -112,14 +112,14 @@ def render_deepdream(tf_obj, img0, save_path, iter_n=20, step=1.5, octave_n=4, o
 
 # picking a layer and channel from tensorboard to visualize
 layer = 'mixed4d_3x3_bottleneck_pre_relu'
-channel = 65
+channel = 66
 os.makedirs('./results', exist_ok=True)
 output_path = './results/' + layer + '_%i.jpeg' % channel
 layer_channel = graph.get_tensor_by_name("import/%s:0" % layer)[:, :, :, channel]
 
 # test on a noise image
 img_noise = np.random.uniform(size=(224, 224, 3)) + 100.0
-render_deepdream(layer_channel, img_noise, './results/noise_dream.jpeg')
+# render_deepdream(layer_channel, img_noise, './results/noise_dream.jpeg')
 
 # test on a real image
 img = Image.open(IMAGE_PATH)
