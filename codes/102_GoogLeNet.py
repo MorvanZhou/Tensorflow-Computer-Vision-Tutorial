@@ -16,7 +16,7 @@ BATCH_SIZE = 64
 LR = 0.001              # learning rate
 
 # process mnist data
-f = np.load('../mnist.npz')
+f = np.load('./mnist.npz')
 train_x, train_y = f['x_train'], f['y_train']
 test_x, test_y = f['x_test'][:2000], f['y_test'][:2000]
 train_dataset = tf.data.Dataset.from_tensor_slices(
