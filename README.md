@@ -3,7 +3,8 @@
 
 In these tutorials, we will learn to build several Convolutional Neural Networks (CNNs) developed recent years.
 
-All methods mentioned below are working in progress. Later, They will have their video and text tutorial in Chinese. Visit [莫烦 Python](https://morvanzhou.github.io/) for more.
+All methods mentioned below are working in progress. 
+Later, they will have their video and text tutorial in Chinese. Visit [莫烦 Python](https://morvanzhou.github.io/) for more.
 
 * Visualize filters and convolutions
   * [Visualization](/codes/000_visualization.py)
