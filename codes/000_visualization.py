@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-f = np.load('./mnist.npz')
+f = np.load('../mnist.npz')
 image, label = f['x_train'][7], f['y_train'][7]
 
 
