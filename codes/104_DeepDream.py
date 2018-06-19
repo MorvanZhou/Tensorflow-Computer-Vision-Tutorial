@@ -119,7 +119,7 @@ layer_channel = graph.get_tensor_by_name("import/%s:0" % layer)[:, :, :, channel
 
 # test on a noise image
 img_noise = np.random.uniform(size=(224, 224, 3)) + 100.0
-# render_deepdream(layer_channel, img_noise, './results/noise_dream.jpeg')
+render_deepdream(layer_channel, img_noise, './results/noise_dream.jpeg')
 
 # test on a real image
 img = Image.open(IMAGE_PATH)
