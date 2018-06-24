@@ -3,6 +3,11 @@ The introduction of DeepDream on [Google's blog post](https://ai.googleblog.com/
 This code implementation is based on [tensorflow deepdream tutorial](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/tutorials/deepdream)
 
 Learn more, visit my tutorial site: [莫烦Python](https://morvanzhou.github.io)
+
+Dependencies:
+tensorflow=1.8.0
+PIL=5.1.0
+requests=2.18.4
 """
 import tensorflow as tf
 import numpy as np
@@ -119,7 +124,7 @@ layer_channel = graph.get_tensor_by_name("import/%s:0" % layer)[:, :, :, channel
 
 # test on a noise image
 img_noise = np.random.uniform(size=(224, 224, 3)) + 100.0
-# render_deepdream(layer_channel, img_noise, './results/noise_dream.jpeg')
+render_deepdream(layer_channel, img_noise, './results/noise_dream.jpeg')
 
 # test on a real image
 img = Image.open(IMAGE_PATH)
