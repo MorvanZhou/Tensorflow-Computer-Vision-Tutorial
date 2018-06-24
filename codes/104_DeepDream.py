@@ -14,21 +14,20 @@ import numpy as np
 from PIL import Image
 import requests, os, zipfile
 
-MODEL_PATH = './models/tensorflow_inception_graph.pb'
-IMAGE_PATH = "./example_images/morvan_large.jpg"
+MODEL_PATH = '../models/tensorflow_inception_graph.pb'
 
 
 def maybe_download(model_path):
     if not os.path.isfile(model_path):
         print('downloading...')
-        with open("./inception5h.zip", 'wb') as f:
+        with open("../inception5h.zip", 'wb') as f:
             f.write(requests.get("https://storage.googleapis.com/download.tensorflow.org/models/inception5h.zip").content)
-        os.makedirs('./models', exist_ok=True)
-        with zipfile.ZipFile("./inception5h.zip", 'r') as zip_ref:
-            zip_ref.extractall('./models/')
-        os.remove('./inception5h.zip')
-        os.remove('./models/imagenet_comp_graph_label_strings.txt')
-        os.remove('./models/LICENSE')
+        os.makedirs('../models', exist_ok=True)
+        with zipfile.ZipFile("../inception5h.zip", 'r') as zip_ref:
+            zip_ref.extractall('../models/')
+        os.remove('../inception5h.zip')
+        os.remove('../models/imagenet_comp_graph_label_strings.txt')
+        os.remove('../models/LICENSE')
         print('download to ' + model_path)
     return model_path
 
@@ -116,10 +115,11 @@ def render_deepdream(tf_obj, img0, save_path, iter_n=50, step=1.5, octave_n=4, o
 
 
 # picking a layer and channel from tensorboard to visualize
+image_path = "../example_images/morvan.jpg"
 layer = 'mixed4d_3x3_bottleneck_pre_relu'
-channel = 66
-os.makedirs('./results', exist_ok=True)
-output_path = './results/' + layer + '_%i.jpeg' % channel
+channel = 123
+os.makedirs('../results', exist_ok=True)
+output_path = '../results/' + image_path.split('/')[-1].split('.')[0] + '_' + layer + '_%i.jpeg' % channel
 layer_channel = graph.get_tensor_by_name("import/%s:0" % layer)[:, :, :, channel]
 
 # test on a noise image
@@ -127,7 +127,7 @@ img_noise = np.random.uniform(size=(224, 224, 3)) + 100.0
 render_deepdream(layer_channel, img_noise, './results/noise_dream.jpeg')
 
 # test on a real image
-img = Image.open(IMAGE_PATH)
+img = Image.open(image_path)
 img.load()
 render_deepdream(layer_channel, np.asarray(img, dtype=np.float32), output_path)
 
