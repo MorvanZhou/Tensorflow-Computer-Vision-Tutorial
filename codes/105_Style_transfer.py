@@ -1,152 +1,173 @@
+"""
+https://harishnarayanan.org/writing/artistic-style-transfer/
+https://github.com/hnarayanan/artistic-style-transfer/blob/master/notebooks/6_Artistic_style_transfer_with_a_repurposed_VGG_Net_16.ipynb
+
+https://harishnarayanan.org/writing/artistic-style-transfer/
+"""
+
 import tensorflow as tf
 import numpy as np
-import collections
+from PIL import Image
+from scipy.optimize import fmin_l_bfgs_b
+import matplotlib.pyplot as plt
+
+
+CONTENT_PATH = '../example_images/morvan3.jpg'
+STYLE_PATH = '../example_images/style2.jpg'
+VGG_PATH = '../models/vgg16.npy'
+
+# weight for loss (content loss, style loss and total variation loss)
+W_CONTENT = 0.001
+W_STYLE = W_CONTENT * 1e2
+W_VARIATION = 1.
+HEIGHT, WIDTH = 400, 400    # output image height and width
+N_ITER = 6
 
 
 class StyleTransfer:
+    vgg_mean = [103.939, 116.779, 123.68]
 
-    def __init__(self, content_layer_ids, style_layer_ids, init_image, content_image,
-                 style_image, session, net, num_iter, loss_ratio, content_loss_norm_type):
+    def __init__(self, vgg16_npy, w_content, w_style, w_variation, height, width, n_iter):
+        # pre-trained parameters
+        try:
+            self.data_dict = np.load(vgg16_npy, encoding='latin1').item()
+        except FileNotFoundError:
+            print('Please download VGG16 parameters at here https://mega.nz/#!YU1FWJrA!O1ywiCS2IiOlUCtCpI6HTJOMrneN-Qdv3ywQP5poecM')
 
-        self.net = net
-        self.sess = session
+        self.height, self.width, self.n_iter = height, width, n_iter
 
-        # sort layers info
-        self.CONTENT_LAYERS = collections.OrderedDict(sorted(content_layer_ids.items()))
-        self.STYLE_LAYERS = collections.OrderedDict(sorted(style_layer_ids.items()))
+        self.tf_content = tf.placeholder(tf.float32, [1, height, width, 3])
+        self.tf_style = tf.placeholder(tf.float32, [1, height, width, 3])
+        self.tf_styled = tf.placeholder(tf.float32, [1, height, width, 3])
+        concat_image = tf.concat((self.tf_content, self.tf_style, self.tf_styled), axis=0)    # combined input
 
-        # preprocess input images
-        self.p0 = np.float32(self.net.preprocess(content_image))
-        self.a0 = np.float32(self.net.preprocess(style_image))
-        self.x0 = np.float32(self.net.preprocess(init_image))
+        # Convert RGB to BGR
+        red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=concat_image)
+        bgr = tf.concat(axis=3, values=[
+            blue - self.vgg_mean[0],
+            green - self.vgg_mean[1],
+            red - self.vgg_mean[2],
+        ])
 
-        # parameters for optimization
-        self.content_loss_norm_type = content_loss_norm_type
-        self.num_iter = num_iter
-        self.loss_ratio = loss_ratio
+        # pre-trained VGG conv layers
+        self.conv1_1 = self._conv_layer(bgr, "conv1_1")
+        self.conv1_2 = self._conv_layer(self.conv1_1, "conv1_2")
+        self.pool1 = self._max_pool(self.conv1_2, 'pool1')
+        self.conv2_1 = self._conv_layer(self.pool1, "conv2_1")
+        self.conv2_2 = self._conv_layer(self.conv2_1, "conv2_2")
+        self.pool2 = self._max_pool(self.conv2_2, 'pool2')
+        self.conv3_1 = self._conv_layer(self.pool2, "conv3_1")
+        self.conv3_2 = self._conv_layer(self.conv3_1, "conv3_2")
+        self.conv3_3 = self._conv_layer(self.conv3_2, "conv3_3")
+        self.pool3 = self._max_pool(self.conv3_3, 'pool3')
+        self.conv4_1 = self._conv_layer(self.pool3, "conv4_1")
+        self.conv4_2 = self._conv_layer(self.conv4_1, "conv4_2")
+        self.conv4_3 = self._conv_layer(self.conv4_2, "conv4_3")
+        self.pool4 = self._max_pool(self.conv4_3, 'pool4')
+        self.conv5_1 = self._conv_layer(self.pool4, "conv5_1")
+        self.conv5_2 = self._conv_layer(self.conv5_1, "conv5_2")
+        self.conv5_3 = self._conv_layer(self.conv5_2, "conv5_3")
 
-        # build graph for style transfer
-        self._build_graph()
+        # we don't need fully connected layers for style transfer
 
-    def _build_graph(self):
+        # compute content loss
+        content_feature_maps = self.conv2_2[0]
+        styled_feature_maps = self.conv2_2[2]
+        loss = w_content * tf.reduce_sum(tf.square(content_feature_maps-styled_feature_maps))
 
-        """ prepare data """
-        # this is what must be trained
-        self.x = tf.Variable(self.x0, trainable=True, dtype=tf.float32)
+        # compute style loss
+        conv_layers = [self.conv1_2, self.conv2_2, self.conv3_3, self.conv4_3, self.conv5_3]
+        for conv_layer in conv_layers:
+            style_feature_maps = conv_layer[1]
+            styled_feature_maps = conv_layer[2]
+            style_loss = (w_style / len(conv_layers)) * self._style_loss(style_feature_maps, styled_feature_maps)
+            loss = tf.add(loss, style_loss)     # combine losses
 
-        # graph input
-        self.p = tf.placeholder(tf.float32, shape=self.p0.shape, name='content')
-        self.a = tf.placeholder(tf.float32, shape=self.a0.shape, name='style')
+        # total variation loss, reduce noise
+        a = tf.square(self.tf_styled[:, :height - 1, :width - 1, :] - self.tf_styled[:, 1:, :width - 1, :])
+        b = tf.square(self.tf_styled[:, :height - 1, :width - 1, :] - self.tf_styled[:, :height - 1, 1:, :])
+        variation_loss = w_variation * tf.reduce_sum(tf.pow(a + b, 1.25))
+        self.loss = tf.add(loss, variation_loss)
+        # self.loss = loss
 
-        # get content-layer-feature for content loss
-        content_layers = self.net.feed_forward(self.p, scope='content')
-        self.Ps = {}
-        for id in self.CONTENT_LAYERS:
-            self.Ps[id] = content_layers[id]
+        # styled image's gradient
+        self.grads = tf.gradients(loss, self.tf_styled)
 
-        # get style-layer-feature for style loss
-        style_layers = self.net.feed_forward(self.a, scope='style')
-        self.As = {}
-        for id in self.STYLE_LAYERS:
-            self.As[id] = self._gram_matrix(style_layers[id])
+        self.sess = tf.Session()
+        self.sess.run(tf.global_variables_initializer())
 
-        # get layer-values for x
-        self.Fs = self.net.feed_forward(self.x, scope='mixed')
+    def styling(self, content_image, style_image):
+        content = Image.open(content_image).resize((self.width, self.height))
+        self.content = np.expand_dims(content, axis=0).astype(np.float32)   # [1, height, width, 3]
+        style = Image.open(style_image).resize((self.width, self.height))
+        self.style = np.expand_dims(style, axis=0).astype(np.float32)       # [1, height, width, 3]
 
-        """ compute loss """
-        L_content = 0
-        L_style = 0
-        for id in self.Fs:
-            if id in self.CONTENT_LAYERS:
-                ## content loss ##
+        x = np.copy(self.content)      # initialize styled image from content
+        
+        # repeat backpropagating to styled image 
+        for i in range(self.n_iter):
+            x, min_val, info = fmin_l_bfgs_b(self._get_loss, x.flatten(), fprime=lambda x: self.flat_grads, maxfun=20)
+            x = x.clip(0., 255.)
+            print(i, ' loss: ', min_val)
 
-                F = self.Fs[id]  # content feature of x
-                P = self.Ps[id]  # content feature of p
+        x = x.reshape((self.height, self.width, 3))
+        for i in range(1, 4):
+            x[:, :, -i] += self.vgg_mean[i - 1]
+        return x, self.content, self.style
+    
+    def _get_loss(self, x):
+        loss, grads = self.sess.run(
+            [self.loss, self.grads], feed_dict={
+                self.tf_styled: x.reshape((1, self.height, self.width, 3)),
+                self.tf_content: self.content,
+                self.tf_style: self.style
+            })
+        self.flat_grads = grads[0].flatten().astype(np.float64)
+        return loss
 
-                _, h, w, d = F.get_shape()  # first return value is batch size (must be one)
-                N = h.value * w.value  # product of width and height
-                M = d.value  # number of filters
+    def _style_loss(self, style_feature, styled_feature):
+        def gram_matrix(x):
+            num_channels = int(x.get_shape()[-1])
+            matrix = tf.reshape(x, shape=[-1, num_channels])
+            gram = tf.matmul(tf.transpose(matrix), matrix)
+            return gram
 
-                w = self.CONTENT_LAYERS[id]  # weight for this layer
+        s = gram_matrix(style_feature)
+        t = gram_matrix(styled_feature)
+        channels = 3
+        size = self.width * self.height
+        return tf.reduce_sum(tf.square(s - t)) / (4. * (channels ** 2) * (size ** 2))
 
-                # You may choose different normalization constant
-                if self.content_loss_norm_type == 1:
-                    L_content += w * tf.reduce_sum(tf.pow((F - P), 2)) / 2  # original paper
-                elif self.content_loss_norm_type == 2:
-                    L_content += w * tf.reduce_sum(tf.pow((F - P), 2)) / (N * M)  # artistic style transfer for videos
-                elif self.content_loss_norm_type == 3:  # this is from https://github.com/cysmith/neural-style-tf/blob/master/neural_style.py
-                    L_content += w * (1. / (2. * np.sqrt(M) * np.sqrt(N))) * tf.reduce_sum(tf.pow((F - P), 2))
+    def _max_pool(self, bottom, name):
+        return tf.nn.max_pool(bottom, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
 
-            elif id in self.STYLE_LAYERS:
-                ## style loss ##
+    def _conv_layer(self, bottom, name):
+        with tf.variable_scope(name):   # in here, CNN's filter is constant, NOT Variable that can be trained
+            conv = tf.nn.conv2d(bottom, self.data_dict[name][0], [1, 1, 1, 1], padding='SAME')
+            lout = tf.nn.relu(tf.nn.bias_add(conv, self.data_dict[name][1]))
+            return lout
 
-                F = self.Fs[id]
 
-                _, h, w, d = F.get_shape()  # first return value is batch size (must be one)
-                N = h.value * w.value  # product of width and height
-                M = d.value  # number of filters
+image_filter = StyleTransfer(VGG_PATH, W_CONTENT, W_STYLE, W_VARIATION, HEIGHT, WIDTH, N_ITER)
+image, content_image, style_image = image_filter.styling(CONTENT_PATH, STYLE_PATH)     # style transfer
 
-                w = self.STYLE_LAYERS[id]  # weight for this layer
+# save
+image = image.clip(0, 255).astype(np.uint8)
+Image.fromarray(image).save('../results/style.jpeg')    # save result
 
-                G = self._gram_matrix(F)  # style feature of x
-                A = self.As[id]  # style feature of a
-
-                L_style += w * (1. / (4 * N ** 2 * M ** 2)) * tf.reduce_sum(tf.pow((G - A), 2))
-
-        # fix beta as 1
-        alpha = self.loss_ratio
-        beta = 1
-
-        self.L_content = L_content
-        self.L_style = L_style
-        self.L_total = alpha * L_content + beta * L_style
-
-    def update(self):
-        """ define optimizer L-BFGS """
-        # this call back function is called every after loss is updated
-        global _iter
-        _iter = 0
-
-        def callback(tl, cl, sl):
-            global _iter
-            print('iter : %4d, ' % _iter, 'L_total : %g, L_content : %g, L_style : %g' % (tl, cl, sl))
-            _iter += 1
-
-        optimizer = tf.contrib.opt.ScipyOptimizerInterface(self.L_total, method='L-BFGS-B',
-                                                           options={'maxiter': self.num_iter})
-
-        """ session run """
-        # initialize variables
-        init_op = tf.global_variables_initializer()
-        self.sess.run(init_op)
-
-        # optmization
-        optimizer.minimize(self.sess, feed_dict={self.a: self.a0, self.p: self.p0},
-                           fetches=[self.L_total, self.L_content, self.L_style], loss_callback=callback)
-
-        """ get final result """
-        final_image = self.sess.run(self.x)
-
-        # ensure the image has valid pixel-values between 0 and 255
-        final_image = np.clip(self.net.undo_preprocess(final_image), 0.0, 255.0)
-
-        return final_image
-
-    def _gram_matrix(self, tensor):
-
-        shape = tensor.get_shape()
-
-        # Get the number of feature channels for the input tensor,
-        # which is assumed to be from a convolutional layer with 4-dim.
-        num_channels = int(shape[3])
-
-        # Reshape the tensor so it is a 2-dim matrix. This essentially
-        # flattens the contents of each feature-channel.
-        matrix = tf.reshape(tensor, shape=[-1, num_channels])
-
-        # Calculate the Gram-matrix as the matrix-product of
-        # the 2-dim matrix with itself. This calculates the
-        # dot-products of all combinations of the feature-channels.
-        gram = tf.matmul(tf.transpose(matrix), matrix)
-
-        return gram
+# plotting
+# plt.figure(1, figsize=(8, 4))
+# plt.subplot(131)
+# plt.imshow(content_image.reshape((HEIGHT, WIDTH, 3)).astype(int))
+# plt.title('Content')
+# plt.xticks(());plt.yticks(())
+# plt.subplot(132)
+# plt.imshow(style_image.reshape((HEIGHT, WIDTH, 3)).astype(int))
+# plt.title('Style')
+# plt.xticks(());plt.yticks(())
+# plt.subplot(133)
+# plt.title('styled')
+# plt.imshow(image)
+# plt.xticks(());plt.yticks(())
+# plt.tight_layout()
+# plt.show()
