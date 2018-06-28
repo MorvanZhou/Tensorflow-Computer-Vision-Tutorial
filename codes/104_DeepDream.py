@@ -24,9 +24,8 @@ OUTPUT_DIR = '../results/'
 
 
 def tf_func(*argtypes):
-    '''Helper that transforms TF-graph generating function into a regular one.
-    See "resize" function below.
-    '''
+    # Helper that transforms TF-graph generating function into a regular one.
+    # See "tf_resize" function below.
     placeholders = list(map(tf.placeholder, argtypes))
 
     def wrap(f):
@@ -38,8 +37,8 @@ def tf_func(*argtypes):
     return wrap
 
 
-# Helper function that uses TF to resize an image
 def tf_resize(img, size):
+    # Helper function that uses TF to resize an image
     img = tf.expand_dims(img, 0)
     return tf.image.resize_bilinear(img, size)[0,:,:,:]
 
@@ -86,9 +85,9 @@ class DeepDream(object):
         return model_path
 
     def calc_grad_tiled(self, img, t_grad, tile_size=512):
-        '''Compute the value of tensor t_grad over the image in a tiled way.
-        Random shifts are applied to the image to blur tile boundaries over
-        multiple iterations.'''
+        # Compute the value of tensor t_grad over the image in a tiled way.
+        # Random shifts are applied to the image to blur tile boundaries over
+        # multiple iterations.
         sz = tile_size
         h, w = img.shape[:2]
         sx, sy = np.random.randint(sz, size=2)
