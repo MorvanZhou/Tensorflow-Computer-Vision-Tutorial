@@ -15,7 +15,7 @@ from PIL import Image
 from scipy.optimize import fmin_l_bfgs_b
 
 # image and model path
-CONTENT_PATH = '../example_images/morvan3.jpg'
+CONTENT_PATH = '../example_images/morvan2.jpg'
 STYLE_PATH = '../example_images/style4.jpg'
 OUTPUT_DIR = '../results/'
 VGG_PATH = '../models/vgg16.npy'
@@ -153,11 +153,12 @@ class StyleTransfer:
             return lout
 
 
-image_filter = StyleTransfer(VGG_PATH, W_CONTENT, W_STYLE, W_VARIATION, HEIGHT, WIDTH,)
-image, content_image, style_image = image_filter.styling(CONTENT_PATH, STYLE_PATH, N_ITER)     # style transfer
+if __name__ == '__main__':
+    image_filter = StyleTransfer(VGG_PATH, W_CONTENT, W_STYLE, W_VARIATION, HEIGHT, WIDTH,)
+    image, content_image, style_image = image_filter.styling(CONTENT_PATH, STYLE_PATH, N_ITER)     # style transfer
 
-# save
-image = image.clip(0, 255).astype(np.uint8)
-save_name = '_'.join([path.split('/')[-1].split('.')[0] for path in [CONTENT_PATH, STYLE_PATH]]) + '.jpeg'
-Image.fromarray(image).save(''.join([OUTPUT_DIR, save_name]))    # save result
+    # save
+    image = image.clip(0, 255).astype(np.uint8)
+    save_name = '_'.join([path.split('/')[-1].split('.')[0] for path in [CONTENT_PATH, STYLE_PATH]]) + '.jpeg'
+    Image.fromarray(image).save(''.join([OUTPUT_DIR, save_name]))    # save result
 
