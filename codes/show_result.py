@@ -22,11 +22,11 @@ def deep_dream():
 
 def style_transfer():
     # plotting
-    content = Image.open('../example_images/morvan3.jpg').resize((400, 400))
-    plt.figure(1, figsize=(4, 6))
-    for i in range(4):
+    content = Image.open('../example_images/morvan2.jpg').resize((400, 400))
+    plt.figure(1, figsize=(4, 7))
+    for i in range(5):
         for j in range(3):
-            plt.subplot(4, 3, 3*i+j+1)
+            plt.subplot(5, 3, 3*i+j+1)
             if j == 0:
                 plt.imshow(content)
                 if i == 0:
@@ -37,7 +37,7 @@ def style_transfer():
                 if i == 0:
                     plt.title('Style')
             else:
-                styled = Image.open('../results/morvan3_style%i.jpeg' % (i+1)).resize((400, 400))
+                styled = Image.open('../results/morvan2_style%i.jpeg' % (i+1)).resize((400, 400))
                 plt.imshow(styled)
                 if i == 0:
                     plt.title('Styled')
@@ -48,5 +48,5 @@ def style_transfer():
 
 
 if __name__ == '__main__':
-    deep_dream()
-    # style_transfer()
+    # deep_dream()
+    style_transfer()

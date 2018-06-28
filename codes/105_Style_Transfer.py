@@ -16,13 +16,13 @@ from scipy.optimize import fmin_l_bfgs_b
 
 # image and model path
 CONTENT_PATH = '../example_images/morvan2.jpg'
-STYLE_PATH = '../example_images/style4.jpg'
+STYLE_PATH = '../example_images/style5.jpg'
 OUTPUT_DIR = '../results/'
 VGG_PATH = '../models/vgg16.npy'
 
 # weight for loss (content loss, style loss and total variation loss)
 W_CONTENT = 0.001
-W_STYLE = W_CONTENT * 1e2
+W_STYLE = W_CONTENT * 1e3
 W_VARIATION = 1.
 HEIGHT, WIDTH = 400, 400    # output image height and width
 N_ITER = 6                  # styling how many times?
@@ -98,7 +98,6 @@ class StyleTransfer:
         self.grads = tf.gradients(loss, self.tf_styled)
 
         self.sess = tf.Session()
-        self.sess.run(tf.global_variables_initializer())
         tf.summary.FileWriter('./log', self.sess.graph)
 
     def styling(self, content_image, style_image, n_iter):
@@ -113,7 +112,7 @@ class StyleTransfer:
         for i in range(n_iter):
             x, min_val, info = fmin_l_bfgs_b(self._get_loss, x.flatten(), fprime=lambda x: self.flat_grads, maxfun=20)
             x = x.clip(0., 255.)
-            print(i, ' loss: ', min_val)
+            print('(%i/%i) loss: %.1f' % (i+1, n_iter, min_val))
 
         x = x.reshape((self.height, self.width, 3))
         for i in range(1, 4):
