@@ -14,6 +14,11 @@ import numpy as np
 from PIL import Image
 import requests, os, zipfile
 
+
+# picking a layer and channel from tensorboard to visualize
+IMAGE_PATH = "../example_images/morvan.jpg"
+LAYER = 'mixed4d_3x3_bottleneck_pre_relu'
+CHANNEL = 123
 MODEL_PATH = '../models/tensorflow_inception_graph.pb'
 
 
@@ -114,20 +119,17 @@ def render_deepdream(tf_obj, img0, save_path, iter_n=50, step=1.5, octave_n=4, o
     Image.fromarray(img.clip(0, 255).astype(np.uint8)).save(save_path)
 
 
-# picking a layer and channel from tensorboard to visualize
-image_path = "../example_images/morvan.jpg"
-layer = 'mixed4d_3x3_bottleneck_pre_relu'
-channel = 123
+
 os.makedirs('../results', exist_ok=True)
-output_path = '../results/' + image_path.split('/')[-1].split('.')[0] + '_' + layer + '_%i.jpeg' % channel
-layer_channel = graph.get_tensor_by_name("import/%s:0" % layer)[:, :, :, channel]
+output_path = '../results/' + IMAGE_PATH.split('/')[-1].split('.')[0] + '_' + LAYER + '_%i.jpeg' % CHANNEL
+layer_channel = graph.get_tensor_by_name("import/%s:0" % LAYER)[:, :, :, CHANNEL]
 
 # test on a noise image
 img_noise = np.random.uniform(size=(224, 224, 3)) + 100.0
 render_deepdream(layer_channel, img_noise, './results/noise_dream.jpeg')
 
 # test on a real image
-img = Image.open(image_path)
+img = Image.open(IMAGE_PATH)
 img.load()
 render_deepdream(layer_channel, np.asarray(img, dtype=np.float32), output_path)
 
