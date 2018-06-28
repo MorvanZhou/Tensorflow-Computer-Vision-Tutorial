@@ -82,6 +82,7 @@ sess.run(tf.group(      # initialize var in graph
 
 writer = tf.summary.FileWriter('./log', sess.graph)     # write to file
 
+# training
 for step in range(3000):
     b_x, b_y = sess.run(next_batch)
     _, loss_ = sess.run([train_op, loss], {tf_x: b_x, tf_y: b_y, })
