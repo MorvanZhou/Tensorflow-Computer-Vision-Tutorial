@@ -13,6 +13,7 @@ Later, they will have their video and text tutorial in Chinese. Visit [莫烦 Py
   * [GoogLeNet](/codes/102_GoogLeNet.py) 
   * [ResNet](/codes/103_ResNet.py) 
   * [DeepDream](/codes/104_DeepDream.py)
+  * [Style Transfer Using CNN](/codes/105_Style_Transfer.py)
 * Object detection
   * [WIP](#)
 * Generative Adversarial Networks
