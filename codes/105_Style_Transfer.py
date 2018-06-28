@@ -1,19 +1,23 @@
 """
-https://harishnarayanan.org/writing/artistic-style-transfer/
-https://github.com/hnarayanan/artistic-style-transfer/blob/master/notebooks/6_Artistic_style_transfer_with_a_repurposed_VGG_Net_16.ipynb
+An simple implementation of [Image style transferring using CNN](https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Gatys_Image_Style_Transfer_CVPR_2016_paper.pdf)
+The following code is based on this [blog](https://harishnarayanan.org/writing/artistic-style-transfer/)
 
-https://harishnarayanan.org/writing/artistic-style-transfer/
+Learn more, visit my tutorial site: [莫烦Python](https://morvanzhou.github.io)
+Dependencies:
+tensorflow=1.8.0
+PIL=5.1.0
+scipy=1.1.0
 """
 
 import tensorflow as tf
 import numpy as np
 from PIL import Image
 from scipy.optimize import fmin_l_bfgs_b
-import matplotlib.pyplot as plt
 
 # image and model path
 CONTENT_PATH = '../example_images/morvan3.jpg'
 STYLE_PATH = '../example_images/style4.jpg'
+OUTPUT_DIR = '../results/'
 VGG_PATH = '../models/vgg16.npy'
 
 # weight for loss (content loss, style loss and total variation loss)
@@ -155,21 +159,5 @@ image, content_image, style_image = image_filter.styling(CONTENT_PATH, STYLE_PAT
 # save
 image = image.clip(0, 255).astype(np.uint8)
 save_name = '_'.join([path.split('/')[-1].split('.')[0] for path in [CONTENT_PATH, STYLE_PATH]]) + '.jpeg'
-Image.fromarray(image).save('../results/%s' % save_name)    # save result
+Image.fromarray(image).save(''.join([OUTPUT_DIR, save_name]))    # save result
 
-# plotting
-plt.figure(1, figsize=(8, 4))
-plt.subplot(131)
-plt.imshow(content_image.reshape((HEIGHT, WIDTH, 3)).astype(int))
-plt.title('Content')
-plt.xticks(());plt.yticks(())
-plt.subplot(132)
-plt.imshow(style_image.reshape((HEIGHT, WIDTH, 3)).astype(int))
-plt.title('Style')
-plt.xticks(());plt.yticks(())
-plt.subplot(133)
-plt.title('styled')
-plt.imshow(image)
-plt.xticks(());plt.yticks(())
-plt.tight_layout()
-plt.show()
