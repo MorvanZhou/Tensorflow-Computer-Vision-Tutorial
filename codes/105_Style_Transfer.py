@@ -55,33 +55,33 @@ class StyleTransfer:
         ])
 
         # pre-trained VGG conv layers
-        self.conv1_1 = self._conv_layer(bgr, "conv1_1")
-        self.conv1_2 = self._conv_layer(self.conv1_1, "conv1_2")
-        self.pool1 = self._max_pool(self.conv1_2, 'pool1')
-        self.conv2_1 = self._conv_layer(self.pool1, "conv2_1")
-        self.conv2_2 = self._conv_layer(self.conv2_1, "conv2_2")
-        self.pool2 = self._max_pool(self.conv2_2, 'pool2')
-        self.conv3_1 = self._conv_layer(self.pool2, "conv3_1")
-        self.conv3_2 = self._conv_layer(self.conv3_1, "conv3_2")
-        self.conv3_3 = self._conv_layer(self.conv3_2, "conv3_3")
-        self.pool3 = self._max_pool(self.conv3_3, 'pool3')
-        self.conv4_1 = self._conv_layer(self.pool3, "conv4_1")
-        self.conv4_2 = self._conv_layer(self.conv4_1, "conv4_2")
-        self.conv4_3 = self._conv_layer(self.conv4_2, "conv4_3")
-        self.pool4 = self._max_pool(self.conv4_3, 'pool4')
-        self.conv5_1 = self._conv_layer(self.pool4, "conv5_1")
-        self.conv5_2 = self._conv_layer(self.conv5_1, "conv5_2")
-        self.conv5_3 = self._conv_layer(self.conv5_2, "conv5_3")
+        conv1_1 = self._conv_layer(bgr, "conv1_1")
+        conv1_2 = self._conv_layer(conv1_1, "conv1_2")
+        pool1 = self._max_pool(conv1_2, 'pool1')
+        conv2_1 = self._conv_layer(pool1, "conv2_1")
+        conv2_2 = self._conv_layer(conv2_1, "conv2_2")
+        pool2 = self._max_pool(conv2_2, 'pool2')
+        conv3_1 = self._conv_layer(pool2, "conv3_1")
+        conv3_2 = self._conv_layer(conv3_1, "conv3_2")
+        conv3_3 = self._conv_layer(conv3_2, "conv3_3")
+        pool3 = self._max_pool(conv3_3, 'pool3')
+        conv4_1 = self._conv_layer(pool3, "conv4_1")
+        conv4_2 = self._conv_layer(conv4_1, "conv4_2")
+        conv4_3 = self._conv_layer(conv4_2, "conv4_3")
+        pool4 = self._max_pool(conv4_3, 'pool4')
+        conv5_1 = self._conv_layer(pool4, "conv5_1")
+        conv5_2 = self._conv_layer(conv5_1, "conv5_2")
+        conv5_3 = self._conv_layer(conv5_2, "conv5_3")
 
         # we don't need fully connected layers for style transfer
 
         with tf.variable_scope('content_loss'):     # compute content loss
-            content_feature_maps = self.conv2_2[0]
-            styled_feature_maps = self.conv2_2[2]
+            content_feature_maps = conv2_2[0]
+            styled_feature_maps = conv2_2[2]
             loss = w_content * tf.reduce_sum(tf.square(content_feature_maps-styled_feature_maps))
 
         with tf.variable_scope('style_loss'):       # compute style loss
-            conv_layers = [self.conv1_2, self.conv2_2, self.conv3_3, self.conv4_3, self.conv5_3]
+            conv_layers = [conv1_2, conv2_2, conv3_3, conv4_3, conv5_3]
             for conv_layer in conv_layers:
                 style_feature_maps = conv_layer[1]
                 styled_feature_maps = conv_layer[2]
